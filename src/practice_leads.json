@@ -1,0 +1,25 @@
+{
+  "practice_leads": [
+    {
+      "username": "tech.lead",
+      "name": "Technology Practice Lead",
+      "role": "practice_lead",
+      "practice_areas": ["Technology"],
+      "password_hash": "pbkdf2_sha256$600000$f33d674700d40295e1da4a9d1662a1bb$c17d8f92850ead556973d8b0899796b252fdbab231f817822c9680f7b2d4fd26"
+    },
+    {
+      "username": "strategy.lead",
+      "name": "Strategy Practice Lead",
+      "role": "practice_lead",
+      "practice_areas": ["Strategy"],
+      "password_hash": "pbkdf2_sha256$600000$dd979f9d7fea37199cbfe86d6b99f39b$43f0dc43e68907a5b4a161b6eebdd4aa17ca845c5f083159c91e9de500f706fd"
+    },
+    {
+      "username": "ops.lead",
+      "name": "Operations Practice Lead",
+      "role": "practice_lead",
+      "practice_areas": ["Operations"],
+      "password_hash": "pbkdf2_sha256$600000$6389e1cf88e2d8a8097608feb40955dd$e41078129c4f6be469a79f9bcf3e872bdb3edebeddb4c574b1355366fcc96d2d"
+    }
+  ]
+}
