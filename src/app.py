@@ -211,8 +211,18 @@ def me(lead: dict = Depends(get_current_lead)):
 
 
 @app.get("/capabilities")
-def get_capabilities():
-    return capabilities
+def get_capabilities(practice_area: str | None = None,
+                     industry_vertical: str | None = None):
+    """List capabilities, optionally filtered by practice area and/or industry vertical"""
+    result = capabilities
+    if practice_area:
+        result = {name: c for name, c in result.items()
+                  if c["practice_area"].lower() == practice_area.lower()}
+    if industry_vertical:
+        result = {name: c for name, c in result.items()
+                  if industry_vertical.lower() in
+                  (v.lower() for v in c["industry_verticals"])}
+    return result
 
 
 @app.post("/capabilities/{capability_name}/register")
