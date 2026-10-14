@@ -3,6 +3,97 @@ document.addEventListener("DOMContentLoaded", () => {
   const capabilitySelect = document.getElementById("capability");
   const registerForm = document.getElementById("register-form");
   const messageDiv = document.getElementById("message");
+  const registerContainer = document.getElementById("register-container");
+  const authBtn = document.getElementById("auth-btn");
+  const userLabel = document.getElementById("user-label");
+  const loginModal = document.getElementById("login-modal");
+  const loginForm = document.getElementById("login-form");
+  const loginError = document.getElementById("login-error");
+
+  // Session lives in sessionStorage so it clears when the tab closes
+  let token = sessionStorage.getItem("token");
+  let user = JSON.parse(sessionStorage.getItem("user") || "null");
+
+  function authHeaders() {
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  function setSession(newToken, newUser) {
+    token = newToken;
+    user = newUser;
+    if (token) {
+      sessionStorage.setItem("token", token);
+      sessionStorage.setItem("user", JSON.stringify(user));
+    } else {
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+    }
+    updateAuthUI();
+  }
+
+  function updateAuthUI() {
+    const loggedIn = Boolean(token);
+    registerContainer.classList.toggle("hidden", !loggedIn);
+    userLabel.classList.toggle("hidden", !loggedIn);
+    userLabel.textContent = loggedIn
+      ? `${user.name} (${user.practice_areas.join(", ")})`
+      : "";
+    authBtn.textContent = loggedIn ? "Log out" : "\u{1F464}";
+    authBtn.title = loggedIn ? "Log out" : "Practice lead login";
+  }
+
+  // An expired session returns 401; drop it and refresh the UI
+  function handleExpiredSession(response) {
+    if (response.status === 401 && token) {
+      setSession(null, null);
+      fetchCapabilities();
+    }
+  }
+
+  authBtn.addEventListener("click", async () => {
+    if (!token) {
+      loginError.classList.add("hidden");
+      loginModal.classList.remove("hidden");
+      document.getElementById("username").focus();
+      return;
+    }
+    await fetch("/auth/logout", { method: "POST", headers: authHeaders() });
+    setSession(null, null);
+    fetchCapabilities();
+  });
+
+  document.getElementById("login-cancel").addEventListener("click", () => {
+    loginModal.classList.add("hidden");
+    loginForm.reset();
+  });
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      const response = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: document.getElementById("username").value,
+          password: document.getElementById("password").value,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        loginError.textContent = result.detail || "Login failed";
+        loginError.classList.remove("hidden");
+        return;
+      }
+      setSession(result.token, result.user);
+      loginForm.reset();
+      loginModal.classList.add("hidden");
+      fetchCapabilities();
+    } catch (error) {
+      loginError.textContent = "Login failed. Please try again.";
+      loginError.classList.remove("hidden");
+      console.error("Error logging in:", error);
+    }
+  });
 
   // Function to fetch capabilities from API
   async function fetchCapabilities() {
@@ -21,7 +112,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const availableCapacity = details.capacity || 0;
         const currentConsultants = details.consultants ? details.consultants.length : 0;
 
-        // Create consultants HTML with delete icons
+        // Create consultants HTML with delete icons (practice leads only)
+        const canManage = Boolean(token);
         const consultantsHTML =
           details.consultants && details.consultants.length > 0
             ? `<div class="consultants-section">
@@ -30,7 +122,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 ${details.consultants
                   .map(
                     (email) =>
-                      `<li><span class="consultant-email">${email}</span><button class="delete-btn" data-capability="${name}" data-email="${email}">❌</button></li>`
+                      `<li><span class="consultant-email">${email}</span>${
+                        canManage
+                          ? `<button class="delete-btn" data-capability="${name}" data-email="${email}">❌</button>`
+                          : ""
+                      }</li>`
                   )
                   .join("")}
               </ul>
@@ -82,10 +178,12 @@ document.addEventListener("DOMContentLoaded", () => {
         )}/unregister?email=${encodeURIComponent(email)}`,
         {
           method: "DELETE",
+          headers: authHeaders(),
         }
       );
 
       const result = await response.json();
+      handleExpiredSession(response);
 
       if (response.ok) {
         messageDiv.textContent = result.message;
@@ -126,10 +224,12 @@ document.addEventListener("DOMContentLoaded", () => {
         )}/register?email=${encodeURIComponent(email)}`,
         {
           method: "POST",
+          headers: authHeaders(),
         }
       );
 
       const result = await response.json();
+      handleExpiredSession(response);
 
       if (response.ok) {
         messageDiv.textContent = result.message;
@@ -158,5 +258,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Initialize app
+  updateAuthUI();
   fetchCapabilities();
 });

@@ -12,6 +12,7 @@ A FastAPI application that enables Slalom consultants to register their capabili
 - Register consultant expertise and availability
 - Track skill levels and certifications
 - Manage capability capacity and team assignments
+- Practice lead login with role-based access: only authenticated practice leads can register or unregister consultants, limited to their practice areas
 
 ## Getting Started
 
@@ -37,8 +38,25 @@ A FastAPI application that enables Slalom consultants to register their capabili
 | Method | Endpoint                                                          | Description                                                         |
 | ------ | ----------------------------------------------------------------- | ------------------------------------------------------------------- |
 | GET    | `/capabilities`                                                   | Get all capabilities with details and current consultant assignments |
-| POST   | `/capabilities/{capability_name}/register?email=consultant@slalom.com` | Register consultant for a capability                     |
-| DELETE | `/capabilities/{capability_name}/unregister?email=consultant@slalom.com` | Unregister consultant from a capability              |
+| POST   | `/capabilities/{capability_name}/register?email=consultant@slalom.com` | Register consultant for a capability (practice lead) |
+| DELETE | `/capabilities/{capability_name}/unregister?email=consultant@slalom.com` | Unregister consultant from a capability (practice lead) |
+| POST   | `/auth/login`                                                     | Log in with `{"username", "password"}`; returns a Bearer token       |
+| POST   | `/auth/logout`                                                    | End the current session                                              |
+| GET    | `/auth/me`                                                        | Get the logged-in practice lead's profile                            |
+
+Register and unregister require an `Authorization: Bearer <token>` header and return 401 without a valid session or 403 outside the lead's practice areas. Sessions are in memory and expire after 8 hours. Register, unregister, login and logout events are written to the `audit` logger.
+
+## Practice Leads
+
+Accounts are stored in `practice_leads.json` with salted PBKDF2-SHA256 password hashes. Demo accounts for this exercise:
+
+| Username        | Password             | Practice area |
+| --------------- | -------------------- | ------------- |
+| `tech.lead`     | `tech-lead-demo`     | Technology    |
+| `strategy.lead` | `strategy-lead-demo` | Strategy      |
+| `ops.lead`      | `ops-lead-demo`      | Operations    |
+
+Replace these with real credentials, or SSO, before any real deployment.
 
 ## Data Model
 
